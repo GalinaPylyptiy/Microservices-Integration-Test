@@ -1,7 +1,7 @@
 Feature: Operation for fetching training report by trainer username with successful fetch and with empty data
 
   Scenario: The outcome with training report  fetched from the database
-    Given the user wants to fetch the training report from report service by "Lara.Black_2" username and the report exists
+    Given the user wants to fetch the training report from report service by username after it was added to the gym service
     When the system receives the get request then the training report is fetched from the database
     Then the TrainingReport is received as a response with status 200
 

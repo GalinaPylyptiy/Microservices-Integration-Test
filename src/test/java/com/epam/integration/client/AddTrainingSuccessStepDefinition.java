@@ -6,6 +6,8 @@ import com.epam.integration.dto.RegistrationResponse;
 import com.epam.integration.dto.TraineeRegisterRequest;
 import com.epam.integration.dto.TrainerRegisterRequest;
 import com.epam.integration.dto.TrainingCreateRequest;
+import com.epam.integration.dto.TrainingReportResponse;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -18,9 +20,13 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
 import java.util.Calendar;
 import java.util.Date;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class AddTrainingSuccessStepDefinition {
@@ -62,10 +68,35 @@ public class AddTrainingSuccessStepDefinition {
         logger.info("The post request with the TrainingCreateRequest was sent successfully");
     }
 
-    @Then("the operation was a success and the status {int} is returned")
+    @Then("the operation was a success with status code {int} and the new training was added to the database")
     public void return_status_200_ok(int expected) {
         assertEquals(HttpStatus.valueOf(expected), responseEntity.getStatusCode());
         logger.info("The status code {} was received as a response", responseEntity.getStatusCode().value());
+    }
+
+    @And("the new training report request was sent to message broker and processed by training report service")
+    public void check_the_training_report_processed_the_message() {
+        ResponseEntity<TrainingReportResponse> trainingReportResponse = trainingReportResponse();
+        assertNotNull(trainingReportResponse);
+        TrainingReportResponse response = trainingReportResponse.getBody();
+        assertNotNull(response);
+        assertFalse(response.getYears().isEmpty());
+    }
+
+    private String urlWithParams(String url) {
+        return UriComponentsBuilder.fromUriString(url)
+                .queryParam("trainerUsername", trainerRegistrationResponse.getLogin())
+                .toUriString();
+    }
+
+    private ResponseEntity<TrainingReportResponse> trainingReportResponse() {
+        String servicePort = "8888";
+        String url = "http://localhost:" + servicePort + "/api/training-reports";
+        HttpEntity<?> httpEntity = HttpEntity.EMPTY;
+        return restTemplate.exchange(urlWithParams(url),
+                HttpMethod.GET,
+                httpEntity,
+                TrainingReportResponse.class);
     }
 
     private void addTrainer() {
